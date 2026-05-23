@@ -1,4 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
+import { QueryClient, QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import {
   Outlet,
   Link,
@@ -6,10 +7,14 @@ import {
   useRouter,
   HeadContent,
   Scripts,
+  useRouterState,
+  useNavigate,
 } from "@tanstack/react-router";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Topbar } from "@/components/topbar";
-import { useRouterState } from "@tanstack/react-router";
+import { useAuth } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 import appCss from "../styles.css?url";
 
@@ -31,12 +36,8 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold">404</h1>
         <h2 className="mt-4 text-xl font-semibold">الصفحة غير موجودة</h2>
-        <p className="mt-2 text-sm text-muted-foreground">الرابط الذي طلبته غير متوفر.</p>
         <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
+          <Link to="/" className="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
             العودة للرئيسية
           </Link>
         </div>
@@ -52,17 +53,11 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-xl font-semibold">حدث خطأ ما</h1>
-        <p className="mt-2 text-sm text-muted-foreground">حاول مجدداً أو ارجع للرئيسية.</p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => { router.invalidate(); reset(); }}
-            className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-          >
+        <p className="mt-2 text-sm text-muted-foreground">{error.message}</p>
+        <div className="mt-6">
+          <button onClick={() => { router.invalidate(); reset(); }} className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
             إعادة المحاولة
           </button>
-          <a href="/" className="rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent">
-            الرئيسية
-          </a>
         </div>
       </div>
     </div>
@@ -104,8 +99,41 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Layout() {
+function AppShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { isAuthenticated, loading } = useAuth();
+
+  // Invalidate caches on auth change
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      queryClient.invalidateQueries();
+    });
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
+  // Auth guard
+  useEffect(() => {
+    if (loading) return;
+    if (!isAuthenticated && pathname !== "/auth") {
+      navigate({ to: "/auth" });
+    } else if (isAuthenticated && pathname === "/auth") {
+      navigate({ to: "/" });
+    }
+  }, [isAuthenticated, loading, pathname, navigate]);
+
+  // Auth page renders standalone (no sidebar/topbar)
+  if (pathname === "/auth") return <Outlet />;
+
+  if (loading || !isAuthenticated) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const title = titleMap[pathname] ?? "لوحة التحكم";
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -124,7 +152,7 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
     <QueryClientProvider client={queryClient}>
-      <Layout />
+      <AppShell />
     </QueryClientProvider>
   );
 }
