@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Bell, Search, Moon, Sun, UserCircle2, LogOut } from "lucide-react";
+import { Search, Moon, Sun, UserCircle2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, ROLE_LABELS } from "@/hooks/use-auth";
+import { NotificationsBell } from "@/components/notifications-bell";
 
 export function Topbar({ title }: { title: string }) {
   const [dark, setDark] = useState(false);
@@ -34,10 +35,7 @@ export function Topbar({ title }: { title: string }) {
         >
           {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
         </button>
-        <button className="relative rounded-lg p-2 text-muted-foreground hover:bg-accent hover:text-foreground transition">
-          <Bell className="h-5 w-5" />
-          <span className="absolute top-1.5 left-1.5 h-2 w-2 rounded-full bg-destructive" />
-        </button>
+        <NotificationsBell />
 
         <div className="relative">
           <button

@@ -15,6 +15,7 @@ import { Topbar } from "@/components/topbar";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
+import { Toaster } from "sonner";
 
 import appCss from "../styles.css?url";
 
@@ -93,6 +94,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         {children}
+        <Toaster richColors position="top-center" dir="rtl" />
         <Scripts />
       </body>
     </html>
