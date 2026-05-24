@@ -98,7 +98,7 @@ function POS() {
     if (cart.length === 0) return;
     if (pay === "credit" && !customerId) { toast.error("اختر عميلاً للبيع الآجل"); return; }
     setSubmitting(true);
-    const { data, error } = await supabase.rpc("create_invoice", {
+    const { data, error } = await (supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: string | null; error: { message: string } | null }>)("create_invoice", {
       _customer_id: customerId || null,
       _payment_type: pay,
       _discount: discount,
@@ -108,7 +108,7 @@ function POS() {
     });
     setSubmitting(false);
     if (error) { toast.error(error.message); return; }
-    const { data: inv } = await supabase.from("invoices").select("invoice_no").eq("id", data as string).single();
+    const { data: inv } = await supabase.from("invoices").select("invoice_no").eq("id", data!).single();
     setLastInvoice({ no: inv?.invoice_no ?? 0, total, items: cart, tax, discount });
     toast.success(`تم إصدار الفاتورة #${inv?.invoice_no}`);
     setCart([]); setDiscount(0); setCustomerId(""); setPay("cash");
